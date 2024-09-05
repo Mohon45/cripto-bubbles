@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  padding: 0px !important;
+  background-color: #0f0112;
+  /* max-width: 1400px; */
+  margin: 0 auto;
+  /* width: 100vw; */
+  scroll-behavior: smooth;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.css-jkymtx-MuiPaper-root {
+  background-color: transparent !important;
+  background-image: none !important;
+  height: auto;
+}
+
+.css-12mbsym-MuiTableCell-root,
+.css-1tg3plo-MuiTableCell-root,
+.css-kmzrxs-MuiTableCell-root,
+.css-1v17xvx-MuiTableCell-root,
+.css-csr56v-MuiTableCell-root {
+  font-size: 0.9vw !important;
+}
+
+.css-12mbsym-MuiTableCell-root,
+.css-1tg3plo-MuiTableCell-root {
+  padding: 0.8vw !important;
+}
+
+.css-kmzrxs-MuiTableCell-root,
+.css-1v17xvx-MuiTableCell-root {
+  padding: 0.8vw !important;
+}
+.css-128ctg3-MuiAvatar-root {
+  width: 1.4vw !important;
+  height: 1.4vw !important;
+}
+
+.css-1ujix9k-MuiTableRow-root td {
+  width: auto !important;
+}
+
+.css-pdct74-MuiTablePagination-selectLabel,
+.css-levciy-MuiTablePagination-displayedRows {
+  font-size: 0.6vw !important;
+}
+
+.css-1t1pb22-MuiButtonBase-root-MuiMenuItem-root-MuiTablePagination-menuItem {
+  font-size: 0.6vw !important;
+}
+
+.css-wywq3z-MuiSelect-select-MuiInputBase-input.css-wywq3z-MuiSelect-select-MuiInputBase-input.css-wywq3z-MuiSelect-select-MuiInputBase-input {
+  font-size: 0.6vw !important;
+}
+
+.css-i4bv87-MuiSvgIcon-root {
+  width: 1.5vw !important;
+}
+
+@media (min-width: 1700px) {
+  .css-128ctg3-MuiAvatar-root {
+    width: 1.5vw !important;
+    height: 1.5vw !important;
+  }
+  .css-1v17xvx-MuiTableCell-root {
+    padding: 1.5vw !important;
+  }
+}

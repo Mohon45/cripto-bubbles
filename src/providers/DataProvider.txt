@@ -1,0 +1,296 @@
+"use client";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import axios from "axios";
+import { BASE_URL } from "../constant/constant";
+import { SettingAndFilterOptionsContext } from "./SettingAndFilterOptionsProvider";
+import {
+  _blockLists,
+  _favorites,
+  filterByExchange,
+  refetch,
+  watchlist,
+} from "@/utils/data.utils";
+import { useBubbles } from "@/hooks/useBubbles";
+import { useFetchCryptos } from "@/hooks/useFetchCryptos";
+
+// Create a context for managing and providing crypto data
+export const DataContext = createContext(null);
+
+const DataProvider = ({ children }) => {
+  const [cryptos, setCryptos] = useState([]);
+
+  const [isRefetched, setIsRefetched] = useState(false);
+  const [refetching, setRefetching] = useState(false);
+  const [watchLists, setWatchLists] = useState([]);
+  const [blockLists, setBlockLists] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [curCryptos, setCurCryptos] = useState([]);
+  const [activeBubble, setActiveBubble] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [coins, setCoins] = useState([]);
+  const [refetchedCoins, setRefetchedCoins] = useState([]);
+  const [isFetched, setIsFetched] = useState(false);
+
+  const [allFilterCoins, setAllFilterCoins] = useState({
+    allCoins: [],
+    exchangeCoins: [],
+  });
+
+  const [showResults, setShowRes] = useState(false);
+
+  const { generateCircles, getScalingFactor } = useBubbles();
+  const { data: allCryptos, error, isLoading } = useFetchCryptos();
+
+  // Get filter options from context
+  const {
+    filterOptions: {
+      pages: { min, max },
+      lists,
+      exchanges,
+      activeBubbleLinkID,
+    },
+    bubbleNavLinks,
+    bubbleColor,
+
+    colors,
+    language,
+  } = useContext(SettingAndFilterOptionsContext);
+
+  const curActiveExchange = exchanges;
+
+  const plusColor = colors === "Red + Green" ? "green" : "cyan";
+  const minusColor = colors === "Red + Green" ? "red" : "yellow";
+
+  const [period, setPeriod] = useState("");
+
+  // // console.log({ min, max, curCryptos: curCryptos[0]?.name });
+
+  const setShowResults = (res) => {
+    setShowRes(res);
+  };
+
+  // Handle setting the active bubble
+  const handleActiveBubble = useCallback((bubble) => {
+    setActiveBubble(bubble);
+  }, []);
+
+  const handleFilterByExchange = (exchange, isSet = true) => {
+    return filterByExchange(exchange, isSet, allCryptos, setCurCryptos);
+  };
+
+  // Handle adding or removing from watchlist
+  const handleWatchlist = (type) => {
+    return watchlist(type, setWatchLists, watchLists, activeBubble);
+  };
+
+  // Handle adding or removing from favorites
+  const handleFavorites = (type) => {
+    return _favorites(type, setFavorites, favorites, activeBubble);
+  };
+
+  // Handle adding or removing from blocklist
+  const handleBlocklists = (type) => {
+    return _blockLists(type, setBlockLists, blockLists, activeBubble);
+  };
+
+  const handleSetIsRefetch = () => {
+    setIsRefetched(!isRefetched);
+  };
+
+  const handleSetAllFilterCoins = (key, value) => {
+    setAllFilterCoins({
+      ...allFilterCoins,
+      [key]: value,
+    });
+  };
+
+  const handleCreateAll1000Coins = (cryptos) => {
+    let allCryptos = [];
+    // console.log({ length: cryptos?.length });
+    for (let i = 0; i < 1000; i += 100) {
+      const min = i;
+      const max = i + 99;
+
+      const slicedCrypto = cryptos?.slice(min, max).map((coin) => ({
+        id: coin.id,
+        // x: number,
+        // y: number,
+        // vx: number,
+        // vy: number,
+        // color: string,
+        // dragging: boolean,
+        // targetRadius: number,
+        symbol: coin.symbol,
+        coinName: coin.name,
+        slug: coin?.slug,
+        // radius: number,
+        HOUR: coin.quote[language || "USD"]?.percent_change_1h,
+        DAY: coin?.quote[language || "USD"]?.percent_change_24h,
+        WEEK: coin?.quote[language || "USD"]?.percent_change_7d,
+        MONTH: coin?.quote[language || "USD"]?.percent_change_30d,
+        YEAR: coin?.quote?.USD?.yearPercentage,
+        MARKET_CAP: coin?.quote[language || "USD"]?.market_cap,
+        image: `https://s2.coinmarketcap.com/static/img/coins/64x64/${coin?.id}.png`,
+        text2: "",
+        market_urls: coin?.market_urls,
+        Performance: coin.quote[language || "USD"]?.volume_change_24h,
+        "Rank ↑↓": coin?.cmc_rank,
+        Name: coin?.name,
+        Dominance: coin.quote[language || "USD"]?.market_cap_dominance,
+        Hour: coin.quote[language || "USD"]?.percent_change_1h,
+        Day: coin?.quote[language || "USD"]?.percent_change_24h,
+        Week: coin?.quote[language || "USD"]?.percent_change_7d,
+        Month: coin?.quote[language || "USD"]?.percent_change_30d,
+        Price: coin?.quote[language || "USD"]?.price,
+        data: coin,
+        keep: true,
+      }));
+
+      const scalingFactor = getScalingFactor(slicedCrypto, "HOUR");
+      const shapes = generateCircles(slicedCrypto, scalingFactor);
+      allCryptos = [...allCryptos, ...shapes];
+    }
+
+    // console.log({ length: allCryptos?.length });
+
+    handleSetAllFilterCoins("allCoins", allCryptos);
+  };
+
+  useEffect(() => {
+    const curBubble =
+      bubbleNavLinks?.find(({ id }) => {
+        return activeBubbleLinkID === id;
+      }) || {};
+
+    const { bubbleSize: bubbleSort, period } = curBubble;
+    setPeriod(period);
+  }, [activeBubbleLinkID]);
+
+  // Update current cryptos based on filter options and list type
+  useEffect(() => {
+    setLoading(true);
+    if (loading) return;
+    if (!lists) {
+      setCurCryptos(cryptos?.slice(min - 1, max));
+      return setLoading(false);
+    }
+
+    if (lists === "Favorites") {
+      setCurCryptos(favorites);
+      return setLoading(false);
+    }
+
+    if (lists === "Blocklist") {
+      setCurCryptos(blockLists);
+      return setLoading(false);
+    }
+
+    setCurCryptos(watchLists.filter((watchlist) => watchlist.type === lists));
+    // setLoading(false);
+  }, [lists, loading, favorites, blockLists, cryptos, watchLists, min, max]);
+
+  useEffect(() => {
+    let interval;
+
+    interval = setInterval(() => {
+      !loading && handleRefetch();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  // // console.log({ curActiveExchange, min });
+
+  useEffect(() => {
+    if (period === "Year") {
+      // setCurCryptos(curCryptos?.filter((c) => c.quote.USD.yearPercentage));
+    }
+  }, [period]);
+
+  // Update current cryptos when filter options change
+  useEffect(() => {
+    if (loading) return;
+
+    setIsFetched(false);
+    if (cryptos?.length === 0) return;
+    let curCryptos = allCryptos?.slice(min - 1, max);
+
+    if (curActiveExchange) {
+      curCryptos = handleFilterByExchange(curActiveExchange, false);
+      setCurCryptos(curCryptos);
+    } else {
+      if (period === "Year") {
+        // setCurCryptos(curCryptos?.filter((c) => c.quote.USD.yearPercentage));
+        // // console.log({ c: curCryptos[0] });
+      } else {
+        setCurCryptos(curCryptos);
+      }
+    }
+
+    setIsFetched(true);
+  }, [min, max, cryptos, curActiveExchange, allCryptos, allFilterCoins]);
+
+  useEffect(() => {
+    setCoins(allFilterCoins?.allCoins?.slice(min - 1, max) || []);
+  }, [min, max, allFilterCoins]);
+
+  useEffect(() => {
+    if (coins?.length > 0 && loading) {
+      setLoading(false);
+    }
+  }, [coins]);
+
+  // Refetch crypto data from server
+  const handleRefetch = () => {
+    return refetch(setIsRefetched, setRefetching, setCryptos, () => {});
+  };
+
+  // Initial fetch of crypto data on component mount
+  useEffect(() => {
+    if (!allCryptos) return;
+
+    // // console.log({ allCryptos });
+
+    setCryptos(allCryptos);
+    handleCreateAll1000Coins(allCryptos);
+    // setLoading(false);
+  }, [allCryptos]);
+
+  // // console.log({ loading, allCryptos });
+
+  // console.log({ loading, coins: allFilterCoins?.allCoins });
+
+  // Provide crypto data and handlers to children components
+  const value = {
+    cryptos: curCryptos,
+    coins,
+    refetchedCoins,
+    allCryptos,
+    loading,
+    isFetched,
+    handleActiveBubble,
+    handleFilterByExchange,
+    activeBubble,
+    showResults,
+    setShowResults,
+    handleFavorites,
+    handleWatchlist,
+    handleBlocklists,
+    watchLists,
+    favorites,
+    blockLists,
+    refetching,
+    handleRefetch,
+    handleSetIsRefetch,
+  };
+
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+};
+
+export default DataProvider;
